@@ -50,3 +50,25 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+# ===============================
+# Generated audio & runtime data
+# ===============================
+outputs/
+cache/
+runtime/
+
+# ===============================
+# Trained models (large binaries)
+# ===============================
+models/
+
+# ===============================
+# Experimental / disabled DSP
+# ===============================
+scripts/_disabled_dsp/
+
+# ===============================
+# Python junk
+# ===============================
+__pycache__/
+*.pyc

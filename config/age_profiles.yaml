@@ -1,0 +1,49 @@
+child:
+  min_age: 5
+  max_age: 12
+  pitch_shift_semitones: 4.0
+  speaking_rate: 1.25
+  breathiness: 0.005
+  jitter: 0.03
+  shimmer: 0.01
+  tremor_rate: 0.0
+
+teen:
+  min_age: 13
+  max_age: 19
+  pitch_shift_semitones: 2.0
+  speaking_rate: 1.1
+  breathiness: 0.01
+  jitter: 0.02
+  shimmer: 0.008
+  tremor_rate: 0.0
+
+adult:
+  min_age: 20
+  max_age: 50
+  pitch_shift_semitones: 0.0
+  speaking_rate: 1.0
+  breathiness: 0.01
+  jitter: 0.01
+  shimmer: 0.005
+  tremor_rate: 0.0
+
+senior:
+  min_age: 51
+  max_age: 70
+  pitch_shift_semitones: -1.5
+  speaking_rate: 0.9
+  breathiness: 0.03
+  jitter: 0.04
+  shimmer: 0.02
+  tremor_rate: 4.0
+
+elderly:
+  min_age: 71
+  max_age: 90
+  pitch_shift_semitones: -2.5
+  speaking_rate: 0.85
+  breathiness: 0.06
+  jitter: 0.06
+  shimmer: 0.035
+  tremor_rate: 6.0
