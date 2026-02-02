@@ -21,9 +21,7 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 # ---- Copy the rest of the repo ----
 COPY . /app
 
-# ---- Streamlit settings for containers ----
-# Render/Railway provide $PORT at runtime. Locally we can set it.
-ENV PORT=8501
-EXPOSE 8501
+# ---- Hugging Face Spaces requires port 7860 ----
+EXPOSE 7860
 
-CMD ["bash", "-lc", "streamlit run streamlit_app.py --server.address=0.0.0.0 --server.port=${PORT} --server.headless=true --server.enableCORS=false --server.enableXsrfProtection=false"]
+CMD ["bash", "-lc", "streamlit run streamlit_app.py --server.address=0.0.0.0 --server.port=7860 --server.headless=true --server.enableCORS=false --server.enableXsrfProtection=false"]
