@@ -11,7 +11,7 @@ torchaudio==2.1.2
 speechbrain==0.5.16
 transformers==4.36.2
 huggingface-hub==0.19.4
-
-TTS==0.22.0
-
 pydantic<2
+
+setuptools>=68
+packaging<24

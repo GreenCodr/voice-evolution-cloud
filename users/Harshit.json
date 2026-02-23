@@ -1,0 +1,16 @@
+{
+  "user_id": "Harshit",
+  "date_of_birth": "2003-01-01",
+  "created_utc": "2026-02-23T15:12:24.688682Z",
+  "voice_versions": [
+    {
+      "version_id": "1771859568",
+      "recorded_utc": "2026-02-23T15:12:48.242341Z",
+      "age_at_recording": 23,
+      "embedding_path": "versions/embeddings/Harshit_1771859568.npy",
+      "audio_path": "/var/folders/07/0b2ykmv17ylf3mrs3j2st1x00000gn/T/tmpdm22m9lj.mp3",
+      "confidence": 1.0,
+      "type": "RECORDED"
+    }
+  ]
+}
