@@ -24,6 +24,8 @@ from scripts.confidence_engine import compute_confidence
 from scripts.version_decision import decide_voice_version
 from user_registry import UserRegistry
 
+from scripts.audio_preprocess import normalize_audio  # ✅ NEW (same as Phase-2)
+
 try:
     from register_version import register_version
 except Exception:
@@ -37,6 +39,9 @@ VERSIONS_AUDIO_DIR = VERSIONS_DIR / "audio"
 MANIFEST_EMB = PROJECT_ROOT / "data" / "librispeech_manifest_small_emb.csv"
 
 THRESHOLD = 0.75
+
+# ✅ NEW: make speaker verification consistent with Phase-2
+SPEAKER_THRESHOLD = 0.75
 
 # ------------------ HELPERS ------------------
 
@@ -149,13 +154,19 @@ def main(threshold: float = THRESHOLD) -> int:
         if not audio_path.exists():
             continue
 
+        # ✅ NEW: normalize audio like Phase-2 (reduces Cloud drift)
+        try:
+            clean_audio = normalize_audio(audio_path)
+        except Exception:
+            continue
+
         # ---- Quality Gate ----
-        quality = audio_quality_gate(str(audio_path), dev_mode=True)
+        quality = audio_quality_gate(str(clean_audio), dev_mode=True)
         if not quality["accepted"]:
             continue
 
         # ---- Speaker Gate ----
-        speaker = speaker_verification_gate(emb, version_embs)
+        speaker = speaker_verification_gate(emb, version_embs, threshold=SPEAKER_THRESHOLD)
         if not speaker["accepted"]:
             continue
 
@@ -164,10 +175,12 @@ def main(threshold: float = THRESHOLD) -> int:
         try:
             ref = next(VERSIONS_AUDIO_DIR.glob("*.wav"))
             device_score = device_match_score(
-                extract_device_fingerprint(str(audio_path)),
+                extract_device_fingerprint(str(clean_audio)),
                 extract_device_fingerprint(str(ref)),
             )
         except StopIteration:
+            pass
+        except Exception:
             pass
 
         confidence = compute_confidence(
