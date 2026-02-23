@@ -1,11 +1,10 @@
 ---
-title: Voice Evolution System
+title: upwork
 emoji: 🎙️
 colorFrom: purple
 colorTo: indigo
-sdk: streamlit
-sdk_version: "1.30.0"
-app_file: frontend/app.py
+sdk: docker
+app_port: 8501
 pinned: false
 ---
 # 🎙️ Voice Evolution System
