@@ -15,3 +15,4 @@ pydantic<2
 
 setuptools>=68
 packaging<24
+praat-parselmouth
