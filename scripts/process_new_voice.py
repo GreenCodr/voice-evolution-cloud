@@ -76,6 +76,13 @@ def process_new_voice(user_id: str, audio_path: str) -> dict:
 
     try:
         shutil.copyfile(str(clean_audio), str(stable_audio_path))
+
+        # ✅ NEW: delete temp cleaned file to avoid disk bloat on Streamlit Cloud
+        try:
+            Path(str(clean_audio)).unlink(missing_ok=True)
+        except Exception:
+            pass
+
     except Exception:
         # If copy fails for any reason, fall back to the cleaned audio path
         stable_audio_path = Path(str(clean_audio))
