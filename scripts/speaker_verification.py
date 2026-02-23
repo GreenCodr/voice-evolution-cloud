@@ -49,8 +49,6 @@ def speaker_verification_gate(
       }
     """
 
-    # If no references exist, we can't verify identity reliably.
-    # Your pipeline creates a baseline earlier, so this should be rare.
     if not reference_embs:
         return {
             "accepted": False,
@@ -64,9 +62,7 @@ def speaker_verification_gate(
         if sim > best_sim:
             best_sim = sim
 
-    # Ensure numeric
     if best_sim is None or not np.isfinite(best_sim):
-        best_sim = 0.0
         return {
             "accepted": False,
             "best_similarity": 0.0,
@@ -88,7 +84,6 @@ def speaker_verification_gate(
 
 
 # ------------------ OPTIONAL WRAPPER ------------------
-# (Not used by your process_new_voice.py, but kept as a utility)
 
 def verify_speaker(
     user_id: str,
@@ -99,14 +94,12 @@ def verify_speaker(
     High-level speaker verification utility.
 
     - If audio_or_embedding is a numpy array -> treated as embedding
-    - If it's a path/str -> embedding is extracted via scripts.embed_single_audio.extract_embedding
+    - If it's a path/str -> embedding is extracted via scripts.embed_ecapa.extract_embedding
 
     NOTE: This wrapper loads embeddings from user's stored voice_versions.
     """
 
-    # Lazy imports to avoid circular imports
     from scripts.user_registry import load_user
-
     user = load_user(user_id)
 
     reference_embs: List[np.ndarray] = []
@@ -123,7 +116,8 @@ def verify_speaker(
     if isinstance(audio_or_embedding, np.ndarray):
         new_emb = audio_or_embedding.astype("float32")
     else:
-        from scripts.embed_single_audio import extract_embedding
+        # ✅ FIX: your repo uses embed_ecapa.py
+        from scripts.embed_ecapa import extract_embedding
         new_emb = extract_embedding(str(audio_or_embedding))
 
     result = speaker_verification_gate(
