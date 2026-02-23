@@ -72,3 +72,11 @@ scripts/_disabled_dsp/
 # ===============================
 __pycache__/
 *.pyc
+
+# local caches / artifacts
+pretrained_models/
+*.egg-info/
+
+# users: ignore all, but keep template users like users/user_001.json etc
+users/*.json
+!users/user_*.json
