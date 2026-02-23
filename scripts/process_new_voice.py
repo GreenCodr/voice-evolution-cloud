@@ -3,6 +3,7 @@
 from pathlib import Path
 from datetime import datetime, timezone
 import numpy as np
+import shutil  # ✅ NEW
 
 from scripts.audio_preprocess import normalize_audio   # 🔑 CRITICAL
 from scripts.audio_quality import audio_quality_gate
@@ -62,8 +63,27 @@ def process_new_voice(user_id: str, audio_path: str) -> dict:
             "error": str(e),
         }
 
+    # ====================================================
+    # ✅ CRITICAL CLOUD FIX:
+    # Persist cleaned audio into a stable project folder
+    # (Streamlit Cloud temp uploads can be deleted or moved)
+    # ====================================================
+    stable_audio_dir = PROJECT_ROOT / "versions" / "audio"
+    stable_audio_dir.mkdir(parents=True, exist_ok=True)
+
+    stable_id = str(int(datetime.now(timezone.utc).timestamp()))
+    stable_audio_path = stable_audio_dir / f"{user_id}_{stable_id}.wav"
+
+    try:
+        shutil.copyfile(str(clean_audio), str(stable_audio_path))
+    except Exception:
+        # If copy fails for any reason, fall back to the cleaned audio path
+        stable_audio_path = Path(str(clean_audio))
+
+    stable_audio_path = str(stable_audio_path)
+
     # ---------------- Duration ----------------
-    duration = get_audio_duration(str(clean_audio))
+    duration = get_audio_duration(str(stable_audio_path))
     if duration < MIN_DURATION_SEC:
         return {
             "accepted": False,
@@ -72,11 +92,11 @@ def process_new_voice(user_id: str, audio_path: str) -> dict:
         }
 
     # ---------------- Audio Quality (SOFT) ----------------
-    quality = audio_quality_gate(str(clean_audio), dev_mode=True)
+    quality = audio_quality_gate(str(stable_audio_path), dev_mode=True)
     soft_quality_fail = not quality["accepted"]
 
     # ---------------- ECAPA Embedding ----------------
-    embedding = extract_embedding(clean_audio)
+    embedding = extract_embedding(stable_audio_path)
     embedding = embedding / np.linalg.norm(embedding)
 
     history_versions = user.get_versions()
@@ -96,7 +116,7 @@ def process_new_voice(user_id: str, audio_path: str) -> dict:
         user.add_voice_version(
             version_id=version_id,
             embedding_path=str(emb_path.relative_to(PROJECT_ROOT)),
-            audio_path=str(audio_path),   # 🔒 store ORIGINAL audio
+            audio_path=str(stable_audio_path),  # ✅ store STABLE CLEANED audio
             confidence=1.0,
             voice_type="RECORDED",
         )
@@ -138,19 +158,16 @@ def process_new_voice(user_id: str, audio_path: str) -> dict:
         return {
             "accepted": False,
             "reason": "Different speaker detected",
-            # Fix: best_similarity might be None, so round safely
             "similarity": _safe_round(speaker_similarity, 4),
         }
 
-    # Fix: even if accepted, similarity could still be None in edge cases
-    # (don’t crash; downstream logic already has None-guards)
     # ---------------- Device Fingerprint (SOFT) ----------------
     device_score = 1.0
     try:
         latest = user.get_latest_version()
         if latest and latest.get("audio_path"):
-            fp_ref = extract_device_fingerprint(latest["audio_path"])
-            fp_new = extract_device_fingerprint(str(audio_path))
+            fp_ref = extract_device_fingerprint(latest["audio_path"])     # ✅ stable from registry now
+            fp_new = extract_device_fingerprint(str(stable_audio_path))   # ✅ stable new audio
             device_score = device_match_score(fp_new, fp_ref)
     except Exception:
         pass
@@ -158,7 +175,6 @@ def process_new_voice(user_id: str, audio_path: str) -> dict:
     # ---------------- Confidence (ADVISORY ONLY) ----------------
     confidence = compute_confidence(
         duration_s=quality.get("duration", duration),
-        # Pass through None if missing (your confidence_engine already handles None)
         snr_db=quality.get("snr_db", None),
         speaker_similarity=speaker_similarity,
         device_match=device_score,
@@ -175,7 +191,7 @@ def process_new_voice(user_id: str, audio_path: str) -> dict:
         speaker_ok=True,
         device_match=device_score,
         embedding_path="N/A",
-        audio_path=str(audio_path),
+        audio_path=str(stable_audio_path),  # ✅ stable audio path
         user_dob=user.data.get("date_of_birth"),
     )
 
@@ -192,7 +208,7 @@ def process_new_voice(user_id: str, audio_path: str) -> dict:
         user.add_voice_version(
             version_id=version_id,
             embedding_path=str(emb_path.relative_to(PROJECT_ROOT)),
-            audio_path=str(audio_path),   # 🔒 ORIGINAL audio
+            audio_path=str(stable_audio_path),  # ✅ store STABLE CLEANED audio
             confidence=confidence,
             voice_type="RECORDED",
         )
@@ -202,7 +218,6 @@ def process_new_voice(user_id: str, audio_path: str) -> dict:
         "change_detected": False,
         "decision": decision,
         "confidence": round(confidence, 3),
-        # Fix: speaker_similarity can be None → safe rounding
         "similarity": _safe_round(speaker_similarity, 4),
         "audio_quality_soft_fail": soft_quality_fail,
     }
