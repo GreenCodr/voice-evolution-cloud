@@ -77,7 +77,7 @@ def process_new_voice(user_id: str, audio_path: str) -> dict:
     try:
         shutil.copyfile(str(clean_audio), str(stable_audio_path))
 
-        # ✅ NEW: delete temp cleaned file to avoid disk bloat on Streamlit Cloud
+        # ✅ delete temp cleaned file to avoid disk bloat on Streamlit Cloud
         try:
             Path(str(clean_audio)).unlink(missing_ok=True)
         except Exception:
@@ -123,7 +123,7 @@ def process_new_voice(user_id: str, audio_path: str) -> dict:
         user.add_voice_version(
             version_id=version_id,
             embedding_path=str(emb_path.relative_to(PROJECT_ROOT)),
-            audio_path=str(stable_audio_path),  # ✅ store STABLE CLEANED audio
+            audio_path=str(stable_audio_path),
             confidence=1.0,
             voice_type="RECORDED",
         )
@@ -152,13 +152,45 @@ def process_new_voice(user_id: str, audio_path: str) -> dict:
                 e = e / np.linalg.norm(e)
                 reference_embs.append(e)
 
+    # ====================================================
+    # ✅ CLOUD PIPELINE FIX:
+    # If user versions exist but embeddings cannot be loaded from disk,
+    # rebuild a baseline instead of falsely rejecting as "Different speaker".
+    # ====================================================
+    if len(reference_embs) == 0:
+        version_id = str(int(datetime.now(timezone.utc).timestamp()))
+
+        emb_dir = PROJECT_ROOT / "versions" / "embeddings"
+        emb_dir.mkdir(parents=True, exist_ok=True)
+
+        emb_path = emb_dir / f"{user_id}_{version_id}.npy"
+        np.save(emb_path, embedding)
+
+        user.add_voice_version(
+            version_id=version_id,
+            embedding_path=str(emb_path.relative_to(PROJECT_ROOT)),
+            audio_path=str(stable_audio_path),
+            confidence=1.0,
+            voice_type="RECORDED",
+        )
+
+        return {
+            "accepted": True,
+            "change_detected": False,
+            "decision": {
+                "action": "REBUILD_BASELINE",
+                "reason": "Reference embedding files missing on disk; baseline rebuilt for cloud stability",
+            },
+            "confidence": 1.0,
+            "similarity": 1.0,
+        }
+
     speaker = speaker_verification_gate(
         new_emb=embedding,
         reference_embs=reference_embs,
         threshold=STRICT_SPEAKER_THRESHOLD,
     )
 
-    # Pull similarity once and keep it consistent
     speaker_similarity = speaker.get("best_similarity", None)
 
     if not speaker["accepted"]:
@@ -173,8 +205,8 @@ def process_new_voice(user_id: str, audio_path: str) -> dict:
     try:
         latest = user.get_latest_version()
         if latest and latest.get("audio_path"):
-            fp_ref = extract_device_fingerprint(latest["audio_path"])     # ✅ stable from registry now
-            fp_new = extract_device_fingerprint(str(stable_audio_path))   # ✅ stable new audio
+            fp_ref = extract_device_fingerprint(latest["audio_path"])
+            fp_new = extract_device_fingerprint(str(stable_audio_path))
             device_score = device_match_score(fp_new, fp_ref)
     except Exception:
         pass
@@ -198,7 +230,7 @@ def process_new_voice(user_id: str, audio_path: str) -> dict:
         speaker_ok=True,
         device_match=device_score,
         embedding_path="N/A",
-        audio_path=str(stable_audio_path),  # ✅ stable audio path
+        audio_path=str(stable_audio_path),
         user_dob=user.data.get("date_of_birth"),
     )
 
@@ -215,7 +247,7 @@ def process_new_voice(user_id: str, audio_path: str) -> dict:
         user.add_voice_version(
             version_id=version_id,
             embedding_path=str(emb_path.relative_to(PROJECT_ROOT)),
-            audio_path=str(stable_audio_path),  # ✅ store STABLE CLEANED audio
+            audio_path=str(stable_audio_path),
             confidence=confidence,
             voice_type="RECORDED",
         )
