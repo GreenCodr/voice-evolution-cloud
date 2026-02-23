@@ -22,7 +22,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MIN_DURATION_SEC = 10.0
 
 # ECAPA identity-grade threshold (REALISTIC)
-STRICT_SPEAKER_THRESHOLD = 0.75
+STRICT_SPEAKER_THRESHOLD = 0.70
 
 
 # ------------------ HELPERS ------------------
